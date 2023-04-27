@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Query, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Post, Query, ValidationPipe } from '@nestjs/common';
 import { IAuthenticationService } from '../../../service/authentication/authentication.service.abstraction';
 import { UserCredentials } from '../../../service/authentication/model/UserCredentials';
 import { JwtToken } from '../../../service/authentication/model/JwtToken';
@@ -27,5 +27,10 @@ export class AuthenticationController {
   @Get('resend-email')
   async resendEmail(@Body(new ValidationPipe()) credentials: UserCredentials): Promise<void> {
     await this.authenticationService.resendEmail(credentials);
+  }
+
+  @Delete('delete-user')
+  async delete(@Body(new ValidationPipe()) credentials: UserCredentials): Promise<void> {
+    await this.authenticationService.deleteUser(credentials);
   }
 }

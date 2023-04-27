@@ -16,4 +16,6 @@ export abstract class IAuthenticationService {
   abstract confirmEmail(token: string): Promise<void>;
 
   abstract resendEmail(credentials: UserCredentials): Promise<void>;
+
+  abstract deleteUser(credetials: UserCredentials): Promise<void>;
 }

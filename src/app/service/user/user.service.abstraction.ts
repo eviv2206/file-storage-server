@@ -11,4 +11,6 @@ export abstract class IUserService {
 
   public abstract findByEmail(email: string): Promise<UserEntity>;
 
+  public abstract deleteUser(user: UserEntity): Promise<void>;
+
 }

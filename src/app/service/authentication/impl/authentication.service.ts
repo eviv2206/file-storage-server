@@ -14,6 +14,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import * as process from 'process';
 import { UserDuplicateException } from '../exception/user-duplicate.exception';
 import { InvalidTokenException } from '../exception/invalid-token.exception';
+import { BadCredentialsException } from '../exception/bad-credentials.exception';
 
 const NUM_OF_HASH_ROUNDS = 12;
 const EMAIL = 'Почта';
@@ -79,7 +80,7 @@ export class AuthenticationService implements IAuthenticationService {
     try {
       const decoded = await this.jwtService.verifyAsync(token, { secret: process.env.JWT_SECRET_KEY });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const userToSave = await this.userService.findById(decoded.sub);
+      const userToSave = await this.userService.findById(decoded.userId);
       userToSave.isEmailVerified = true;
       await this.userService.update(userToSave);
     } catch (error) {
@@ -91,6 +92,15 @@ export class AuthenticationService implements IAuthenticationService {
     const jwtToken = await this.signIn(credentials);
     const userEntity = await this.userService.findByLogin(credentials.login);
     await this.sendEmail(jwtToken.accessToken, userEntity.email);
+  }
+
+  public async deleteUser(credentials: UserCredentials): Promise<void> {
+    const userEntity = await this.userService.findByLogin(credentials.login);
+    if (await this.isPasswordMatching(credentials, userEntity)) {
+      await this.userService.deleteUser(userEntity);
+    } else {
+      throw new BadCredentialsException();
+    }
   }
 
   private async areCredentialsInvalid(credentials: UserCredentials, user: UserEntity): Promise<boolean> {
