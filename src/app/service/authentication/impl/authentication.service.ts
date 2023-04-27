@@ -12,8 +12,13 @@ import { CreateUserDto } from '../model/CreateUserDto';
 import { UserConverter } from '../util/converters/user.converter';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as process from 'process';
+import { UserDuplicateException } from '../exception/user-duplicate.exception';
+import { InvalidTokenException } from '../exception/invalid-token.exception';
 
 const NUM_OF_HASH_ROUNDS = 12;
+const EMAIL = 'Почта';
+const LOGIN = 'Логин';
+const SUBJECT_LETTER = 'Подтверждение почты';
 
 @Injectable()
 export class AuthenticationService implements IAuthenticationService {
@@ -57,38 +62,35 @@ export class AuthenticationService implements IAuthenticationService {
 
   public async register(createUser: CreateUserDto): Promise<void> {
     if (await this.userService.findByEmail(createUser.email)) {
-      throw new Error('User already exists');
+      throw new UserDuplicateException(EMAIL);
+    }
+    if (await this.userService.findByLogin(createUser.login)) {
+      throw new UserDuplicateException(LOGIN);
     }
     const userEntityPartly = this.userConverter.convertCreateUserToEntity(createUser);
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     userEntityPartly.password = await bcrypt.hash(userEntityPartly.password, NUM_OF_HASH_ROUNDS);
     const user = await this.userService.createUser(userEntityPartly);
-    const token = await this.jwtService.signAsync({ sub: user.id });
-    const confirmationUrl = `http://localhost:8080/api/v1/auth/confirm-email?token=${token}`;
-    await this.mailerService.sendMail({
-      to: user.email, // list of receivers
-      from: 'evgeniy.saprin@mail.com', // sender address
-      subject: 'Подтверждение почты', // Subject line
-      template: process.cwd() + '/templates/' + 'confirm-email.pug',
-      context: {
-        confirmationUrl,
-      },
-    });
+    const token = await this.jwtService.signAsync({ userId: user.id });
+    await this.sendEmail(token, user.email);
   }
 
   public async confirmEmail(token: string): Promise<void> {
     try {
-      const decoded = await this.jwtService.verifyAsync(token);
+      const decoded = await this.jwtService.verifyAsync(token, { secret: process.env.JWT_SECRET_KEY });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const userToSave = await this.userService.findById(decoded.sub);
       userToSave.isEmailVerified = true;
-      const user = await this.userService.update(userToSave);
-      if (!user) {
-        throw new Error('User not found');
-      }
+      await this.userService.update(userToSave);
     } catch (error) {
-      throw new Error('Invalid token');
+      throw new InvalidTokenException();
     }
+  }
+  
+  public async resendEmail(credentials: UserCredentials): Promise<void> {
+    const jwtToken = await this.signIn(credentials);
+    const userEntity = await this.userService.findByLogin(credentials.login);
+    await this.sendEmail(jwtToken.accessToken, userEntity.email);
   }
 
   private async areCredentialsInvalid(credentials: UserCredentials, user: UserEntity): Promise<boolean> {
@@ -100,5 +102,17 @@ export class AuthenticationService implements IAuthenticationService {
     return await bcrypt.compare(credentials.password, user.password);
   }
 
-
+  private async sendEmail(token: string, emailReceiver: string): Promise<void> {
+    const confirmationUrl = process.env.CONFIRMATION_LINK + token;
+    await this.mailerService.sendMail({
+      to: emailReceiver,
+      from: process.env.SENDER_EMAIL,
+      subject: SUBJECT_LETTER,
+      template: process.cwd() + '/templates/' + 'confirm-email.pug',
+      context: {
+        confirmationUrl,
+      },
+    });
+  }
+  
 }

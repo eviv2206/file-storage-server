@@ -10,4 +10,5 @@ export abstract class IUserService {
   public abstract update(user: UserEntity): Promise<UserEntity>;
 
   public abstract findByEmail(email: string): Promise<UserEntity>;
+
 }

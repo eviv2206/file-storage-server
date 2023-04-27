@@ -22,10 +22,6 @@ import * as process from 'process';
         return addTransactionalDataSource(new DataSource(options));
       },
     }),
-    JwtModule.register({
-      secret: 'secret_key',
-      signOptions: { expiresIn: '4h' },
-    }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       // eslint-disable-next-line @typescript-eslint/require-await

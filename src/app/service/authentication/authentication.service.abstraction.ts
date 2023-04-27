@@ -14,4 +14,6 @@ export abstract class IAuthenticationService {
   abstract register(user: CreateUserDto): Promise<void>;
 
   abstract confirmEmail(token: string): Promise<void>;
+
+  abstract resendEmail(credentials: UserCredentials): Promise<void>;
 }

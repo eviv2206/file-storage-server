@@ -10,9 +10,7 @@ export class AuthenticationController {
   private authenticationService: IAuthenticationService;
 
   @Post('login')
-  async login(
-    @Body(new ValidationPipe()) credentials: UserCredentials
-  ): Promise<JwtToken> {
+  async login(@Body(new ValidationPipe()) credentials: UserCredentials): Promise<JwtToken> {
     return this.authenticationService.signIn(credentials);
   }
 
@@ -24,5 +22,10 @@ export class AuthenticationController {
   @Get('confirm-email')
   async confirmEmail(@Query('token') token: string): Promise<void> {
     await this.authenticationService.confirmEmail(token);
+  }
+
+  @Get('resend-email')
+  async resendEmail(@Body(new ValidationPipe()) credentials: UserCredentials): Promise<void> {
+    await this.authenticationService.resendEmail(credentials);
   }
 }
