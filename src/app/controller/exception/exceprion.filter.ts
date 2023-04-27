@@ -22,7 +22,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.BAD_REQUEST;
 
-    const responseBody = exception.response ? exception.response : {
+    const responseBody = exception.response instanceof Object ? exception.response : {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
       path: httpAdapter.getRequestUrl(ctx.getRequest()),
